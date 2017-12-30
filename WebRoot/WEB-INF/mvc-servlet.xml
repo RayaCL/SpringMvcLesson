@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+						http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd
+						http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.1.xsd
+						http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.1.xsd
+						http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd
+	">
+	
+	<context:component-scan base-package="cn.etspringmvc.lesson06"></context:component-scan>
+	
+	<!-- 配置注解中错误信息国际化  (验证) -
+		ref="messageSource":spring.xml中配置的
+	-->
+	<bean id="localValidatorFactoryBean" class="org.springframework.validation.beanvalidation.LocalValidatorFactoryBean">
+		<property name="validationMessageSource" ref="messageSource"></property>
+	</bean>
+	<!-- springmvc 配置拦截/  所有资源都被拦截 图片无法展示 将除控制层以外的资源交回给servlet处理 -->
+	<mvc:default-servlet-handler/>
+	<!-- 将springmvc注解的action交给springmvc处理 -->
+	<mvc:annotation-driven validator="localValidatorFactoryBean">
+		<mvc:message-converters>
+		<bean class="org.springframework.http.converter.ByteArrayHttpMessageConverter">
+			<property name="supportedMediaTypes">
+			<list>
+				<value>text/html</value>
+				<value>application/x-www-form-urlencoded</value>
+			</list>
+			</property>
+		</bean>
+		<!-- 配置返回对应解析成json的消息转换器 -->
+			<bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+				<property name="supportedMediaTypes">
+					<list>
+						<value>text/html</value>
+						<value>application/x-www-form-urlencoded</value>
+					</list>
+				</property>
+			</bean>
+		</mvc:message-converters>
+	</mvc:annotation-driven>
+	<!-- 静态资源映射 -->
+	<mvc:resources mapping="/img/**" location="/WEB-INF/imgs/" ></mvc:resources>
+	
+	<!-- 配置视图解析器
+		name="prefix":前缀
+		 name="suffix"后缀 
+	
+	<bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix" value="/"></property>
+		<property name="suffix" value=".jsp"></property>
+	</bean> -->
+	
+	<!-- 该拦截器 用于 拦截url上参数    只是当jsp经过action之后 才会将当前的国家和语言存储在session 同时从session中获取-->
+	<mvc:interceptors>
+		<bean id="localeChangeInterceptor" class="org.springframework.web.servlet.i18n.LocaleChangeInterceptor">
+			<property name="paramName" value="a"></property>
+		</bean>
+		<!-- 自定义拦截器 -->
+		<mvc:interceptor>
+			<!-- path="/inter" 表示拦截的资源  path="/**"拦截所有的action -->
+			<mvc:mapping path="/inter"/>
+			<bean class="cn.etspringmvc.lesson05.MyInteractor"></bean>
+		</mvc:interceptor>
+		<!-- 防止重复提交的拦截器 -->
+		<mvc:interceptor>
+			<mvc:mapping path="/tm"/>
+			<bean class="cn.etspringmvc.lesson05.TokenInteractor"></bean>
+		</mvc:interceptor>
+	</mvc:interceptors>
+	<!-- 参数需要被临时存储在某个地方 当用户再次访问 使用之前设置的参数 -->
+	<bean id="localeResolver" class="org.springframework.web.servlet.i18n.SessionLocaleResolver">
+	
+	</bean>
+	
+	<!-- 启用文件上传 -->
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<!-- 限制上传文件大小5M -->
+		<property name="maxUploadSize" value="5242880"></property>
+	</bean>
+	<context:property-placeholder location="classpath:/cn/etspringmvc/lesson06/jdbcmysql.properties"/>
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="url" value="${url}"></property>
+		<property name="username" value="${userName1}"></property>
+		<property name="password" value="${password}"></property>
+		<property name="driverClassName" value="${driverClass}"></property>
+	</bean>
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+   		 <property name="dataSource" ref="dataSource"></property>
+    </bean>
+    <!-- 事务管理器 不再使用jdbc的commit和rollbacke 必须使用事务管理器提供 -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+    	<property name="dataSource" ref="dataSource"></property>
+    </bean>
+    <!-- 定义通知 通知代码spring已经实现 -->
+    <tx:advice id="myAdvice" transaction-manager="transactionManager">
+    	<tx:attributes>
+    		<tx:method name="update*"/>
+    		<tx:method name="save*"/>
+    		<tx:method name="delete*"/>
+    		<tx:method name="*" read-only="true"/>
+    	</tx:attributes>
+    </tx:advice>
+    <aop:config>
+    	<!-- 切点 -->
+    	<aop:pointcut expression="execution(* cn.*..*.service.*.*(..))" id="myPoint"/>
+    	<!-- 事务通知需要通知方法 -->
+    	<aop:advisor advice-ref="myAdvice" pointcut-ref="myPoint"/>
+    </aop:config>
+</beans>

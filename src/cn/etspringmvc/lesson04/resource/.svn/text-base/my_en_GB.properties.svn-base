@@ -1,0 +1,24 @@
+key=hello
+userName=userName
+pass=password
+repass=affirmPassword
+email=email
+age=age
+tle=phoneNumber
+time=time
+adds=URL
+button=submit
+userNameErro=userName is not null
+passErro=password is not null
+repassErro=affirmPassword is not null
+emailErro=email format is not right
+ageErro=age is not null
+ageMin=age least  is  1
+ageMax=age most is 100
+tleErro=phoneNumber is 11 place
+timeErro=time is not null
+timeFormat=time format is not right,format is (yyyy-MM-dd)
+addsErro=URL is not null
+addsFormat=URL format is not right
+passandrepass=pass not unanimous
+
